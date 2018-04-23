@@ -3,14 +3,15 @@ package socketio
 import (
 	"errors"
 	"reflect"
+	"fmt"
 
-	"github.com/googollee/go-socket.io/parser"
+	"github.com/tensor146/go-socket.io/parser"
 )
 
 type namespaceHandler struct {
 	onConnect    func(c Conn) error
 	onDisconnect func(c Conn, msg string)
-	onError      func(err error)
+	onError      func(err error, optionalConn Conn)
 	events       map[string]*funcHandler
 }
 
@@ -28,7 +29,7 @@ func (h *namespaceHandler) OnDisconnect(f func(Conn, string)) {
 	h.onDisconnect = f
 }
 
-func (h *namespaceHandler) OnError(f func(error)) {
+func (h *namespaceHandler) OnError(f func(error, Conn)) {
 	h.onError = f
 }
 
@@ -75,7 +76,7 @@ func (h *namespaceHandler) dispatch(c Conn, header parser.Header, event string, 
 			msg = args[0].Interface().(string)
 		}
 		if h.onError != nil {
-			h.onError(errors.New(msg))
+			h.onError(errors.New(msg), c)
 		}
 	case parser.Event:
 		namespaceHandler := h.events[event]
@@ -125,9 +126,11 @@ func (c *namespaceConn) Emit(event string, v ...interface{}) {
 	if l := len(v); l > 0 {
 		last := v[l-1]
 		lastV := reflect.TypeOf(last)
+
 		if lastV.Kind() == reflect.Func {
 			f := newAckFunc(last)
 			header.ID = c.conn.nextID()
+			header.NeedAck = true
 			c.acks[header.ID] = f
 			v = v[:l-1]
 		}

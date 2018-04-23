@@ -3,7 +3,7 @@ package socketio
 import (
 	"net/http"
 
-	"gopkg.in/googollee/go-engine.io.v1"
+	"github.com/tensor146/go-engine.io"
 )
 
 // Server is a go-socket.io server.
@@ -48,7 +48,7 @@ func (s *Server) OnDisconnect(nsp string, f func(Conn, string)) {
 }
 
 // OnError set a handler function f to handle error for namespace nsp.
-func (s *Server) OnError(nsp string, f func(error)) {
+func (s *Server) OnError(nsp string, f func(err error, optionalConn Conn)) {
 	h := s.getNamespace(nsp)
 	h.OnError(f)
 }
@@ -75,7 +75,7 @@ func (s *Server) serveConn(c engineio.Conn) {
 	if err != nil {
 		root := s.handlers[""]
 		if root != nil && root.onError != nil {
-			root.onError(err)
+			root.onError(err, nil)
 		}
 		return
 	}

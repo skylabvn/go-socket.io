@@ -10,7 +10,7 @@ import (
 	"reflect"
 	"strings"
 
-	"gopkg.in/googollee/go-engine.io.v1"
+	"github.com/tensor146/go-engine.io"
 )
 
 type FrameReader interface {

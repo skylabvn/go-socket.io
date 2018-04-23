@@ -7,9 +7,9 @@ import (
 	"reflect"
 	"sync"
 
-	"github.com/googollee/go-socket.io/parser"
+	"github.com/tensor146/go-socket.io/parser"
 
-	"gopkg.in/googollee/go-engine.io.v1"
+	"github.com/tensor146/go-engine.io"
 )
 
 // Conn is a connection in go-socket.io
@@ -147,7 +147,8 @@ func (c *conn) serveError() {
 			return
 		case msg := <-c.errorChan:
 			if handler := c.namespace(msg.namespace); handler != nil {
-				handler.onError(msg.error)
+				connect, _ := c.namespaces[msg.namespace]
+				handler.onError(msg.error, connect)
 			}
 		}
 	}

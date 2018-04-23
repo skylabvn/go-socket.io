@@ -8,7 +8,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"gopkg.in/googollee/go-engine.io.v1"
+	"github.com/tensor146/go-engine.io"
 )
 
 type fakeWriter struct {
