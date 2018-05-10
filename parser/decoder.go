@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"reflect"
 	"strings"
+	"sync"
 
 	"github.com/tensor146/go-engine.io"
 )
@@ -24,15 +25,19 @@ type Decoder struct {
 	packetReader byteReader
 	bufferCount  uint64
 	isEvent      bool
+	mtx sync.Mutex
 }
 
-func NewDecoder(r FrameReader) *Decoder {
+func NewDecoder(r FrameReader, mtx sync.Mutex) *Decoder {
 	return &Decoder{
 		r: r,
+		mtx: mtx,
 	}
 }
 
 func (d *Decoder) Close() error {
+	d.mtx.Lock()
+	defer d.mtx.Unlock()
 	if d.lastFrame != nil {
 		d.lastFrame.Close()
 		d.lastFrame = nil
@@ -47,6 +52,8 @@ type byteReader interface {
 }
 
 func (d *Decoder) DiscardLast() (err error) {
+	d.mtx.Lock()
+	defer d.mtx.Unlock()
 	if d.lastFrame != nil {
 		err = d.lastFrame.Close()
 		d.lastFrame = nil
@@ -55,6 +62,8 @@ func (d *Decoder) DiscardLast() (err error) {
 }
 
 func (d *Decoder) DecodeHeader(header *Header, event *string) error {
+	d.mtx.Lock()
+	defer d.mtx.Unlock()
 	ft, r, err := d.r.NextReader()
 	if err != nil {
 		return err
@@ -87,6 +96,8 @@ func (d *Decoder) DecodeHeader(header *Header, event *string) error {
 }
 
 func (d *Decoder) DecodeArgs(types []reflect.Type) ([]reflect.Value, error) {
+	d.mtx.Lock()
+	defer d.mtx.Unlock()
 	r := d.packetReader.(io.Reader)
 	if d.isEvent {
 		r = io.MultiReader(strings.NewReader("["), r)

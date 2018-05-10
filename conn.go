@@ -10,6 +10,8 @@ import (
 	"github.com/tensor146/go-socket.io/parser"
 
 	"github.com/tensor146/go-engine.io"
+
+	"github.com/pkg/errors"
 )
 
 // Conn is a connection in go-socket.io
@@ -53,13 +55,15 @@ type conn struct {
 	namespaces map[string]*namespaceConn
 	closeOnce  sync.Once
 	id         uint64
+	sync.Mutex
 }
 
 func newConn(c engineio.Conn, handlers map[string]*namespaceHandler) (*conn, error) {
+	mtx := sync.Mutex{}
 	ret := &conn{
 		Conn:       c,
-		encoder:    parser.NewEncoder(c),
-		decoder:    parser.NewDecoder(c),
+		encoder:    parser.NewEncoder(c, mtx),
+		decoder:    parser.NewDecoder(c, mtx),
 		errorChan:  make(chan errorMessage),
 		writeChan:  make(chan writePacket),
 		quitChan:   make(chan struct{}),
@@ -126,7 +130,7 @@ func (c *conn) write(header parser.Header, args []reflect.Value) {
 func (c *conn) onError(namespace string, err error) {
 	onErr := errorMessage{
 		namespace: namespace,
-		error:     err,
+		error:     errors.Wrap(err, "error"),
 	}
 	select {
 	case c.errorChan <- onErr:
@@ -173,10 +177,12 @@ func (c *conn) serveRead() {
 	var event string
 	for {
 		var header parser.Header
+
 		if err := c.decoder.DecodeHeader(&header, &event); err != nil {
 			c.onError("", err)
 			return
 		}
+
 		if header.Namespace == "/" {
 			header.Namespace = ""
 		}

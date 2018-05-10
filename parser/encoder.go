@@ -6,6 +6,7 @@ import (
 	"errors"
 	"io"
 	"reflect"
+	"sync"
 
 	"github.com/tensor146/go-engine.io"
 )
@@ -16,15 +17,19 @@ type FrameWriter interface {
 
 type Encoder struct {
 	w FrameWriter
+	mtx sync.Mutex
 }
 
-func NewEncoder(w FrameWriter) *Encoder {
+func NewEncoder(w FrameWriter, mtx sync.Mutex) *Encoder {
 	return &Encoder{
 		w: w,
+		mtx: mtx,
 	}
 }
 
 func (e *Encoder) Encode(h Header, args []interface{}) (err error) {
+	e.mtx.Lock()
+	defer e.mtx.Unlock()
 	var w io.WriteCloser
 	w, err = e.w.NextWriter(engineio.TEXT)
 	if err != nil {
