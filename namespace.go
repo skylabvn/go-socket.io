@@ -3,7 +3,6 @@ package socketio
 import (
 	"errors"
 	"reflect"
-	"fmt"
 
 	"github.com/tensor146/go-socket.io/parser"
 )
