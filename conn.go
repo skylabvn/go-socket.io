@@ -173,11 +173,26 @@ func (c *conn) serveWrite() {
 }
 
 func (c *conn) serveRead() {
+	var header parser.Header
+
 	defer c.Close()
+	defer func() {
+		conn, ok := c.namespaces[header.Namespace]
+		if ok {
+			handler, ok := c.handlers[header.Namespace]
+			if ok {
+				handler.dispatch(conn, parser.Header{
+					Type: parser.Event,
+					Namespace: header.Namespace,
+					ID: header.ID,
+					NeedAck: false,
+				}, "_close", nil)
+			}
+		}
+	}()
+
 	var event string
 	for {
-		var header parser.Header
-
 		if err := c.decoder.DecodeHeader(&header, &event); err != nil {
 			c.onError("", err)
 			return
